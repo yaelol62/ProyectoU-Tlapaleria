@@ -59,6 +59,12 @@
                                 <Label fx:id="lblEfectivoEsperado" text="MXN 0.00"
                                        style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
                             </VBox>
+                            <VBox spacing="4">
+                                <Label text="Pago con tarjeta"
+                                       style="-fx-font-weight: bold; -fx-text-fill: #526477;"/>
+                                <Label fx:id="lblTotalTarjeta" text="MXN 0.00"
+                                       style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                            </VBox>
                         </HBox>
                         <VBox spacing="5">
                             <Label text="Nombre del empleado"/>
@@ -96,6 +102,7 @@
                                 <TableColumn fx:id="colHistorialTurno" text="Corte" prefWidth="130"/>
                                 <TableColumn fx:id="colHistorialTotal" text="Total ventas" prefWidth="130"/>
                                 <TableColumn fx:id="colHistorialEfectivo" text="Efectivo esperado" prefWidth="150"/>
+                            <TableColumn fx:id="colHistorialTarjeta" text="Pago con tarjeta" prefWidth="140"/>
                             </columns>
                         </TableView>
                     </VBox>

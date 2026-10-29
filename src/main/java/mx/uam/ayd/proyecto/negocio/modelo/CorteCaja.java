@@ -2,11 +2,18 @@
 package mx.uam.ayd.proyecto.negocio.modelo;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 
 /**
  * Entidad que representa un corte de caja de la HU-15.
@@ -35,8 +42,20 @@ public class CorteCaja {
     /** Suma de los importes de ventas incluidas en el corte. */
     private double totalVentas;
 
-    /** Importe esperado en caja. */
+    /** Importe esperado en caja proveniente de ventas en efectivo. */
     private double efectivoEsperado;
+
+    /** Importe total cobrado con tarjeta. */
+    @Column(nullable = true)
+    private Double totalTarjeta = 0.0;
+
+    /** Identificadores persistidos de las ventas incluidas una sola vez. */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "corte_caja_ventas",
+            joinColumns = @JoinColumn(name = "id_corte"))
+    @Column(name = "id_venta")
+    private Set<Long> ventasIncluidas = new LinkedHashSet<>();
 
     /** Constructor requerido por JPA. */
     public CorteCaja() {
@@ -96,6 +115,24 @@ public class CorteCaja {
 
     public void setEfectivoEsperado(double efectivoEsperado) {
         this.efectivoEsperado = efectivoEsperado;
+    }
+
+    public double getTotalTarjeta() {
+        return totalTarjeta == null ? 0.0 : totalTarjeta;
+    }
+
+    public void setTotalTarjeta(double totalTarjeta) {
+        this.totalTarjeta = totalTarjeta;
+    }
+
+    public Set<Long> getVentasIncluidas() {
+        return ventasIncluidas;
+    }
+
+    public void setVentasIncluidas(Set<Long> ventasIncluidas) {
+        this.ventasIncluidas = ventasIncluidas == null
+                ? new LinkedHashSet<>()
+                : new LinkedHashSet<>(ventasIncluidas);
     }
 
 }

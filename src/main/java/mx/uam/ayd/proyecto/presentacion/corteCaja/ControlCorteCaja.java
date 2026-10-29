@@ -68,12 +68,18 @@ public class ControlCorteCaja {
     @FXML
     private TableColumn<CorteCaja, Double> colHistorialEfectivo;
 
+    @FXML
+    private TableColumn<CorteCaja, Double> colHistorialTarjeta;
+
     /** Etiquetas con los importes calculados. */
     @FXML
     private Label lblTotalVentas;
 
     @FXML
     private Label lblEfectivoEsperado;
+
+    @FXML
+    private Label lblTotalTarjeta;
 
     /** Campo donde el empleado escribe su nombre. */
     @FXML
@@ -177,6 +183,9 @@ public class ControlCorteCaja {
         colHistorialEfectivo.setCellValueFactory(celda ->
                 new ReadOnlyObjectWrapper<>(
                         celda.getValue().getEfectivoEsperado()));
+        colHistorialTarjeta.setCellValueFactory(celda ->
+                new ReadOnlyObjectWrapper<>(
+                        celda.getValue().getTotalTarjeta()));
     }
 
     /**
@@ -266,20 +275,32 @@ public class ControlCorteCaja {
             return;
         }
 
+        if (tablaVentas.getItems().isEmpty()) {
+            mostrarAlerta(
+                    AlertType.INFORMATION,
+                    "Sin ventas pendientes",
+                    "No hay ventas nuevas para incluir en el corte.");
+            return;
+        }
+
         double total = sumarVentas(tablaVentas.getItems());
+        double efectivo = sumarPorTipoPago(tablaVentas.getItems(), "EFECTIVO");
+        double tarjeta = sumarPorTipoPago(tablaVentas.getItems(), "TARJETA");
 
         // Construye la entidad que se guardará.
         CorteCaja corte = new CorteCaja();
         corte.setNombreEmpleado(nombre);
         corte.setFechaHora(LocalDateTime.now());
-        corte.setTurno(
-                "CORTE-" + System.currentTimeMillis());
         corte.setTotalVentas(total);
-        corte.setEfectivoEsperado(total);
+        corte.setEfectivoEsperado(efectivo);
+        corte.setTotalTarjeta(tarjeta);
 
         try {
-            // Guarda el corte a través del servicio de negocio.
-            servicioCorteCaja.registrarCorte(corte);
+            // El servicio recalcula y guarda la relación con las ventas
+            // dentro de una única transacción.
+            CorteCaja guardado = servicioCorteCaja.registrarCorte(
+                    corte, tablaVentas.getItems());
+            cargarVentasDelDia();
             cargarHistorial();
 
             mostrarAlerta(
@@ -287,9 +308,11 @@ public class ControlCorteCaja {
                     "Corte guardado",
                     "Se guardó el corte de " + nombre
                     + ".\nTotal de ventas: "
-                    + String.format("MXN %.2f", total)
+                    + String.format("MXN %.2f", guardado.getTotalVentas())
                     + "\nEfectivo esperado: "
-                    + String.format("MXN %.2f", total));
+                    + String.format("MXN %.2f", guardado.getEfectivoEsperado())
+                    + "\nPago con tarjeta: "
+                    + String.format("MXN %.2f", guardado.getTotalTarjeta()));
 
             ventanaCorteCaja.setVisible(false);
 
@@ -306,9 +329,21 @@ public class ControlCorteCaja {
     }
 
     private void actualizarTotales(List<Venta> ventas) {
-        double total = sumarVentas(ventas);
-        lblTotalVentas.setText(String.format("MXN %.2f", total));
-        lblEfectivoEsperado.setText(String.format("MXN %.2f", total));
+        lblTotalVentas.setText(String.format(
+                "MXN %.2f", sumarVentas(ventas)));
+        lblEfectivoEsperado.setText(String.format(
+                "MXN %.2f", sumarPorTipoPago(ventas, "EFECTIVO")));
+        lblTotalTarjeta.setText(String.format(
+                "MXN %.2f", sumarPorTipoPago(ventas, "TARJETA")));
+    }
+
+    private double sumarPorTipoPago(List<Venta> ventas, String tipoPago) {
+        return ventas.stream()
+                .filter(venta -> tipoPago.equalsIgnoreCase(venta.getTipoPago()))
+                .mapToDouble(venta -> venta.getTotal() == null
+                        ? 0.0
+                        : venta.getTotal())
+                .sum();
     }
 
     private double sumarVentas(List<Venta> ventas) {
